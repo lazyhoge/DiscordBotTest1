@@ -2,7 +2,7 @@
 const config = require('./config.json');
 
 // Discord.jsモジュールを読み込む
-const Discord = require('/home/ubuntu/node_modules/discord.js');
+const Discord = require('discord.js');
 
 // 新しいDiscordクライアントを作成
 const client = new Discord.Client();

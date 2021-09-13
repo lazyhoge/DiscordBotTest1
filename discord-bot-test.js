@@ -12,4 +12,4 @@ client.once('ready', () => {
 });
 
 // トークンを使ってDiscordにログイン
-client.login('トークンをここに貼り付ける');
+client.login(process.env.DiscordBotTest_token);

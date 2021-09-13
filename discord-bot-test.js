@@ -1,6 +1,3 @@
-//.envを読み込めるようにする
-require('dotenv').config();
-
 //configを読み込む
 const config = require('./config.json');
 
@@ -9,6 +6,9 @@ const Discord = require('discord.js');
 
 // 新しいDiscordクライアントを作成
 const client = new Discord.Client();
+
+//機密情報の書かれた.envを読み込む
+require('dotenv').config();
 
 // クライアントの準備ができた際に実行されます
 // このイベントはログインした後に１度だけ実行します

@@ -11,5 +11,13 @@ client.once('ready', () => {
 	console.log('準備完了！');
 });
 
+//!pingというメッセージにpongを返す
+client.on('message', message => {
+	if (message.content === '!ping') {
+		message.channel.send('Pong.');
+	}
+});
+
+
 // トークンを使ってDiscordにログイン
 client.login(process.env.DiscordBotTest_token);

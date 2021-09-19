@@ -8,7 +8,7 @@ require('dotenv').config();
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 
 //sequelizeの設定
-const sequelize = new Sequelize('database', 'user', 'password', {
+const sequelize = new Sequelize('database', 'username', 'password', {
 	host: 'localhost',
 	dialect: 'sqlite',
 	logging: false,
@@ -23,14 +23,15 @@ const sequelize = new Sequelize('database', 'user', 'password', {
  * );
  */
 const Tags = sequelize.define('tags', {
-	discordID: {
+	name: {
 		type: Sequelize.STRING,
 		unique: true,
 	},
-	VRChatID: Sequelize.STRING,
-	rating: {
+	description: Sequelize.TEXT,
+	username: Sequelize.STRING,
+	usage_count: {
 		type: Sequelize.INTEGER,
-		defaultValue: 1500,
+		defaultValue: 0,
 		allowNull: false,
 	},
 });
@@ -57,67 +58,62 @@ client.on('interactionCreate', async interaction => {
 	const { commandName } = interaction;
 
 	if (commandName === 'addtag') {
-		const tagDiscordID = interaction.options.getString('discordID');
-		const tagVRchatID = interaction.options.getString('VRchatID');
+		const tagName = interaction.options.getString('name');
+		const tagDescription = interaction.options.getString('description');
 
 		try {
-			// equivalent to: INSERT INTO tags (name, description, username) values (?, ?, ?);
+			// equivalent to: INSERT INTO tags (name, descrption, username) values (?, ?, ?);
 			const tag = await Tags.create({
-				discordID: tagDiscordID,
-				VRchatID: tagVRchatID,
+				name: tagName,
+				description: tagDescription,
+				username: interaction.author.username,
 			});
-			return interaction.reply(`Tag ${tag.discordID} added.`);
-		}
-		catch (error) {
+			return interaction.reply(`Tag ${tag.name} added.`);
+		} catch (error) {
 			if (error.name === 'SequelizeUniqueConstraintError') {
 				return interaction.reply('That tag already exists.');
 			}
 			return interaction.reply('Something went wrong with adding a tag.');
 		}
 	} else if (commandName === 'tag') {
-		const tagDiscordID = interaction.options.getString('discordID');
+		const tagName = interaction.options.getString('name');
 
 		// equivalent to: SELECT * FROM tags WHERE name = 'tagName' LIMIT 1;
-		const tag = await Tags.findOne({ where: { discordID: tagDiscordID } });
+		const tag = await Tags.findOne({ where: { name: tagName } });
 		if (tag) {
-			return interaction.reply(tag.get('VRChatID'));
+			// equivalent to: UPDATE tags SET usage_count = usage_count + 1 WHERE name = 'tagName';
+			tag.increment('usage_count');
+			return interaction.reply(tag.get('description'));
 		}
-		return interaction.reply(`Could not find tag: ${tagDiscordID}`);
-
+		return interaction.reply(`Could not find tag: ${tagName}`);
 	} else if (commandName === 'edittag') {
-		const tagDiscordID = interaction.options.getString('discordID');
-		const tagVRchatID = interaction.options.getString('VRChatID');
+		const tagName = interaction.options.getString('name');
+		const tagDescription = interaction.options.getString('description');
 
-		// equivalent to: UPDATE tags (description) values (?) WHERE name='?';
-		const affectedRows = await Tags.update({ VRchatID: tagVRchatID }, { where: { discordID: tagdiscordID } });
+		// equivalent to: UPDATE tags (descrption) values (?) WHERE name = ?;
+		const affectedRows = await Tags.update({ description: tagDescription }, { where: { name: tagName } });
 		if (affectedRows > 0) {
-			return interaction.reply(`Tag ${tagDiscordID} was edited.`);
+			return interaction.reply(`Tag ${tagName} was edited.`);
 		}
-		return interaction.reply(`Could not find a tag with name ${tagDiscordID}.`);
-
+		return interaction.reply(`Could not find a tag with name ${tagName}.`);
 	} else if (commandName === 'taginfo') {
-		const tagDiscordID = interaction.options.getString('discordID');
+		const tagName = interaction.options.getString('name');
 
 		// equivalent to: SELECT * FROM tags WHERE name = 'tagName' LIMIT 1;
-		const tag = await Tags.findOne({ where: { name: tagDiscordID } });
+		const tag = await Tags.findOne({ where: { name: tagName } });
 		if (tag) {
-			return interaction.reply(`${tagDiscordID} was created by ${tag.username} at ${tag.createdAt} and his rating is ${tag.raitng} .`);
+			return interaction.reply(`${tagName} was created by ${tag.username} at ${tag.createdAt} and has been used ${tag.usage_count} times.`);
 		}
-		return interaction.reply(`Could not find tag: ${tagDiscordID}`);
-
+		return interaction.reply(`Could not find tag: ${tagName}`);
 	} else if (commandName === 'showtags') {
-		// equivalent to: SELECT name FROM tags;
-		const tagList = await Tags.findAll({ attributes: ['discordID'] });
-		const tagString = tagList.map(t => t.discordID).join(', ') || 'No tags set.';
+		const tagList = await Tags.findAll({ attributes: ['name'] });
+		const tagString = tagList.map(t => t.name).join(', ') || 'No tags set.';
 		return interaction.reply(`List of tags: ${tagString}`);
-
 	} else if (commandName === 'removetag') {
-		const tagDiscordID = interaction.options.getString('discordID');
-
 		// equivalent to: DELETE from tags WHERE name = ?;
-		const rowCount = await Tags.destroy({ where: { discordID: tagDiscordID } });
+		const tagName = interaction.options.getString('name');
+		const rowCount = await Tags.destroy({ where: { name: tagName } });
 		if (!rowCount) return interaction.reply('That tag did not exist.');
-
 		return interaction.reply('Tag deleted.');
 	}
 });
